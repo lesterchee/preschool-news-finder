@@ -4,7 +4,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
 
-    const NEWS_API_KEY = process.env.NEWS_API_KEY;
+    const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
     if (!query) {
@@ -31,22 +31,27 @@ export async function GET(request: Request) {
     };
     // ---------------------------------------------
 
-    // 1. Mock Data (Fallback if no News API Key)
-    if (!NEWS_API_KEY) {
-        const mockArticles = [
-            // ... existing mock data ...
-            // (Omitted for brevity in this specific update, assuming real API is used)
-        ];
-        // Use existing logic for mock if needed, but we focus on real API here
+    // 1. Mock Data (Fallback if no GNews API Key)
+    if (!GNEWS_API_KEY || GNEWS_API_KEY === 'REPLACE_WITH_YOUR_GNEWS_KEY') {
+        // Return mock data for demo purposes
         return NextResponse.json({ articles: [] });
     }
 
     try {
-        // 2. Fetch News
-        const newsApiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=relevancy&pageSize=12&apiKey=${NEWS_API_KEY}`;
+        // 2. Fetch News from GNews
+        // GNews format: https://gnews.io/api/v4/search?q=example&apikey=KEY
+        const gnewsUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=9&apikey=${GNEWS_API_KEY}`;
 
-        const newsRes = await fetch(newsApiUrl);
-        if (!newsRes.ok) throw new Error(`NewsAPI error: ${newsRes.status}`);
+        console.log(`Fetching from GNews...`);
+
+        const newsRes = await fetch(gnewsUrl);
+
+        if (!newsRes.ok) {
+            const err = await newsRes.text();
+            console.error("GNews Error:", err);
+            throw new Error(`GNews error: ${newsRes.status}`);
+        }
+
         const newsData = await newsRes.json();
 
         if (!newsData.articles || newsData.articles.length === 0) {
@@ -61,27 +66,30 @@ export async function GET(request: Request) {
                 kids_zh: "故事即将到来!"
             };
 
+            const title = article.title;
+
             // CHECK MANUAL OVERRIDE FIRST
-            if (MANUAL_SUMMARIES[article.title]) {
-                summaries = MANUAL_SUMMARIES[article.title];
+            if (MANUAL_SUMMARIES[title]) {
+                summaries = MANUAL_SUMMARIES[title];
             }
             // Only run LLM if key is present AND no manual override
             else if (OPENAI_API_KEY) {
                 try {
-                    // ... (Existing OpenAI Logic) ...
+                    // ... (Existing OpenAI Logic placeholder) ...
                 } catch (e) {
                     console.error("LLM Exception:", e);
                 }
             } else {
                 // Fallback Mock Summaries
-                summaries.kids_en = `(Simulated AI) Wow! ${article.title} is so cool! It's like magic because... [Need API Key for real summary]`;
+                summaries.kids_en = `(Simulated AI) Wow! ${title} is so cool! It's like magic because... [Need API Key for real summary]`;
                 summaries.kids_zh = `(Simulated AI) 哇！这个新闻真棒！[需要 API Key]`;
             }
 
             return {
                 title: article.title,
                 url: article.url,
-                image: article.urlToImage,
+                // GNews uses 'image' instead of 'urlToImage'
+                image: article.image,
                 source: article.source.name,
                 date: article.publishedAt,
                 summaryParents: summaries.adult_summary,
