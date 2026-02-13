@@ -81,8 +81,8 @@ export async function GET(request: Request) {
                 }
             } else {
                 // Fallback Mock Summaries
-                summaries.kids_en = `(Simulated AI) Wow! ${title} is so cool! It's like magic because... [Need API Key for real summary]`;
-                summaries.kids_zh = `(Simulated AI) 哇！这个新闻真棒！[需要 API Key]`;
+                summaries.kids_en = `(AI Quota exceeded) Wow! ${title} is so cool! It's like magic because... [Need API Key with billing for real summary]`;
+                summaries.kids_zh = `(AI Quota exceeded) 哇！这个新闻真棒！[需要 API Key]`;
             }
 
             return {
