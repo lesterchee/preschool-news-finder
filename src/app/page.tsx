@@ -15,16 +15,72 @@ export default function Home() {
       if (selectedTags.length > 0) {
         setIsLoading(true);
         try {
-          // Construct query from tags (OR logic)
+          // 1. Fetch Basic News
           const query = selectedTags.join(' OR ');
           const res = await fetch(`/api/news?q=${encodeURIComponent(query)}`);
           if (!res.ok) throw new Error('Failed to fetch');
           const data = await res.json();
-          setArticles(data.articles || []);
+
+          let fetchedArticles: Article[] = data.articles || [];
+
+          // Initialize with "Summarizing" state
+          fetchedArticles = fetchedArticles.map(art => ({
+            ...art,
+            isSummarizing: true
+          }));
+
+          setArticles(fetchedArticles);
+          setIsLoading(false); // Stop main loading, start AI loading in cards
+
+          // 2. Stream AI Summaries individually
+          fetchedArticles.forEach(async (article, index) => {
+            try {
+              const summaryRes = await fetch('/api/summarize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: article.title,
+                  description: article.summaryParents, // sending parent summary (original desc) as context
+                  content: "" // We don't have full content, but title+desc is usually enough for this
+                })
+              });
+
+              if (summaryRes.ok) {
+                const summaryData = await summaryRes.json();
+                setArticles(prev => {
+                  const newArticles = [...prev];
+                  if (newArticles[index]) {
+                    newArticles[index] = {
+                      ...newArticles[index],
+                      summaryParents: summaryData.adult_summary || article.summaryParents,
+                      summaryKidsEn: summaryData.kids_en,
+                      summaryKidsZh: summaryData.kids_zh,
+                      isSummarizing: false
+                    };
+                  }
+                  return newArticles;
+                });
+              } else {
+                // If fail, just remove loading state
+                setArticles(prev => {
+                  const newArticles = [...prev];
+                  if (newArticles[index]) newArticles[index].isSummarizing = false;
+                  return newArticles;
+                });
+              }
+            } catch (err) {
+              console.error("Failed to summarize", err);
+              setArticles(prev => {
+                const newArticles = [...prev];
+                if (newArticles[index]) newArticles[index].isSummarizing = false;
+                return newArticles;
+              });
+            }
+          });
+
         } catch (error) {
           console.error("Error fetching news:", error);
           setArticles([]);
-        } finally {
           setIsLoading(false);
         }
       } else {

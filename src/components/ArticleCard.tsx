@@ -12,6 +12,7 @@ export interface Article {
     image?: string;
     source: string;
     date: string;
+    isSummarizing?: boolean;
 }
 
 interface ArticleCardProps {
@@ -80,15 +81,23 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                         <strong className="text-blue-600 text-sm font-bold uppercase tracking-wide">For Kids (English)</strong>
                         <button
                             onClick={() => playAudio(article.summaryKidsEn, 'en-US')}
-                            className={`p-2 rounded-full ${isPlayingEn ? 'bg-blue-200 text-blue-700 animate-pulse' : 'bg-white text-blue-500 hover:bg-blue-100'} transition-all shadow-sm`}
+                            className={`p-2 rounded-full ${isPlayingEn ? 'bg-blue-200 text-blue-700 animate-pulse' : 'bg-white text-blue-500 hover:bg-blue-100'} transition-all shadow-sm disabled:opacity-50`}
                             aria-label="Play English summary"
+                            disabled={article.isSummarizing}
                         >
                             <Play size={16} fill="currentColor" />
                         </button>
                     </div>
-                    <p className="text-gray-700 leading-relaxed font-medium">
-                        {article.summaryKidsEn}
-                    </p>
+                    {article.isSummarizing ? (
+                        <div className="flex items-center gap-2 text-blue-400 animate-pulse">
+                            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-sm font-medium">AI is reading...</span>
+                        </div>
+                    ) : (
+                        <p className="text-gray-700 leading-relaxed font-medium">
+                            {article.summaryKidsEn}
+                        </p>
+                    )}
                 </div>
 
                 {/* For Kids (Chinese) */}
@@ -97,15 +106,23 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                         <strong className="text-red-600 text-sm font-bold uppercase tracking-wide">For Kids (Chinese)</strong>
                         <button
                             onClick={() => playAudio(article.summaryKidsZh, 'zh-CN')}
-                            className={`p-2 rounded-full ${isPlayingZh ? 'bg-red-200 text-red-700 animate-pulse' : 'bg-white text-red-500 hover:bg-red-100'} transition-all shadow-sm`}
+                            className={`p-2 rounded-full ${isPlayingZh ? 'bg-red-200 text-red-700 animate-pulse' : 'bg-white text-red-500 hover:bg-red-100'} transition-all shadow-sm disabled:opacity-50`}
                             aria-label="Play Chinese summary"
+                            disabled={article.isSummarizing}
                         >
                             <Play size={16} fill="currentColor" />
                         </button>
                     </div>
-                    <p className="text-gray-700 leading-relaxed font-medium font-sans text-lg">
-                        {article.summaryKidsZh}
-                    </p>
+                    {article.isSummarizing ? (
+                        <div className="flex items-center gap-2 text-red-400 animate-pulse">
+                            <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-sm font-medium">AI is translating...</span>
+                        </div>
+                    ) : (
+                        <p className="text-gray-700 leading-relaxed font-medium font-sans text-lg">
+                            {article.summaryKidsZh}
+                        </p>
+                    )}
                 </div>
             </div>
         </article>
