@@ -4,7 +4,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
 
-    const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
+    const GNEWS_API_KEY = process.env.NEXT_PUBLIC_GNEWS_API_KEY;
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
     if (!query) {
