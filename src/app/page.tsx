@@ -54,7 +54,6 @@ export default function Home() {
                       ...newArticles[index],
                       summaryParents: summaryData.adult_summary || article.summaryParents,
                       summaryKidsEn: summaryData.kids_en,
-                      summaryKidsZh: summaryData.kids_zh,
                       isSummarizing: false
                     };
                   }

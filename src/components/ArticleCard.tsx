@@ -8,7 +8,6 @@ export interface Article {
     url: string;
     summaryParents: string;
     summaryKidsEn: string;
-    summaryKidsZh: string;
     image?: string;
     source: string;
     date: string;
@@ -20,22 +19,18 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({ article }: ArticleCardProps) {
-    const [isPlayingEn, setIsPlayingEn] = useState(false);
-    const [isPlayingZh, setIsPlayingZh] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
 
-    const playAudio = (text: string, lang: 'en-US' | 'zh-CN') => {
+    const playAudio = (text: string) => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel(); // Stop any current speech
 
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = lang;
+            utterance.lang = 'en-US';
             utterance.rate = 0.9; // Slightly slower for kids
 
-            utterance.onstart = () => lang === 'en-US' ? setIsPlayingEn(true) : setIsPlayingZh(true);
-            utterance.onend = () => {
-                setIsPlayingEn(false);
-                setIsPlayingZh(false);
-            };
+            utterance.onstart = () => setIsPlaying(true);
+            utterance.onend = () => setIsPlaying(false);
 
             window.speechSynthesis.speak(utterance);
         } else {
@@ -76,18 +71,19 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                 </div>
 
                 {/* For Kids (English) */}
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 relative group text-left">
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 relative group text-left flex-grow">
                     <div className="flex justify-between items-center mb-2">
-                        <strong className="text-blue-600 text-sm font-bold uppercase tracking-wide">For Kids (English)</strong>
+                        <strong className="text-blue-600 text-sm font-bold uppercase tracking-wide">For Kids</strong>
                         <button
-                            onClick={() => playAudio(article.summaryKidsEn, 'en-US')}
-                            className={`p-2 rounded-full ${isPlayingEn ? 'bg-blue-200 text-blue-700 animate-pulse' : 'bg-white text-blue-500 hover:bg-blue-100'} transition-all shadow-sm disabled:opacity-50`}
-                            aria-label="Play English summary"
+                            onClick={() => playAudio(article.summaryKidsEn)}
+                            className={`p-2 rounded-full ${isPlaying ? 'bg-blue-200 text-blue-700 animate-pulse' : 'bg-white text-blue-500 hover:bg-blue-100'} transition-all shadow-sm disabled:opacity-50`}
+                            aria-label="Play summary"
                             disabled={article.isSummarizing}
                         >
                             <Play size={16} fill="currentColor" />
                         </button>
                     </div>
+
                     {article.isSummarizing ? (
                         <div className="flex items-center gap-2 text-blue-400 animate-pulse">
                             <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
@@ -96,31 +92,6 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                     ) : (
                         <p className="text-gray-700 leading-relaxed font-medium">
                             {article.summaryKidsEn}
-                        </p>
-                    )}
-                </div>
-
-                {/* For Kids (Chinese) */}
-                <div className="bg-red-50 p-4 rounded-2xl border border-red-100 relative group text-left mt-auto">
-                    <div className="flex justify-between items-center mb-2">
-                        <strong className="text-red-600 text-sm font-bold uppercase tracking-wide">For Kids (Chinese)</strong>
-                        <button
-                            onClick={() => playAudio(article.summaryKidsZh, 'zh-CN')}
-                            className={`p-2 rounded-full ${isPlayingZh ? 'bg-red-200 text-red-700 animate-pulse' : 'bg-white text-red-500 hover:bg-red-100'} transition-all shadow-sm disabled:opacity-50`}
-                            aria-label="Play Chinese summary"
-                            disabled={article.isSummarizing}
-                        >
-                            <Play size={16} fill="currentColor" />
-                        </button>
-                    </div>
-                    {article.isSummarizing ? (
-                        <div className="flex items-center gap-2 text-red-400 animate-pulse">
-                            <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-sm font-medium">AI is translating...</span>
-                        </div>
-                    ) : (
-                        <p className="text-gray-700 leading-relaxed font-medium font-sans text-lg">
-                            {article.summaryKidsZh}
                         </p>
                     )}
                 </div>

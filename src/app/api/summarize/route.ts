@@ -14,7 +14,6 @@ const ollama = createOpenAI({
 const summarySchema = z.object({
     adult_summary: z.string().describe("2 sentences of high-level context for parents."),
     kids_en: z.string().describe("Very simple words, exciting 'wow' facts, tone for Show and Tell. Max 100 words."),
-    kids_zh: z.string().describe("HSK 1 level vocabulary suitable for Singapore preschool standards. Max 150 characters."),
 });
 
 export async function POST(req: Request) {
@@ -29,7 +28,6 @@ export async function POST(req: Request) {
 
       1. Adults: 2 sentences of high-level context.
       2. Kids (Age 4-6) in English: Use very simple words, exciting 'wow' facts, and a tone suitable for a 1-minute 'Show and Tell.' (Max 100 words).
-      3. Kids (Age 4-6) in Simplified Chinese: Use HSK 1 level vocabulary suitable for Singapore preschool standards. (Max 150 characters).
 
       Safety: If the news is scary (accidents, crime, etc.), focus only on the helpful people involved (e.g., 'The brave doctors helped everyone') or skip the scary details.`;
 
