@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
     try {
         // 2. Fetch News
-        const newsApiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=relevancy&pageSize=3&apiKey=${NEWS_API_KEY}`;
+        const newsApiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=relevancy&pageSize=12&apiKey=${NEWS_API_KEY}`;
 
         const newsRes = await fetch(newsApiUrl);
         if (!newsRes.ok) throw new Error(`NewsAPI error: ${newsRes.status}`);
