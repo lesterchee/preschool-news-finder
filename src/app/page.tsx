@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import WordCloud from '@/components/WordCloud';
+import InterestList from '@/components/InterestList';
 import ArticleGrid from '@/components/ArticleGrid';
 import { Article } from '@/components/ArticleCard';
 
@@ -108,7 +108,7 @@ export default function Home() {
       </header>
 
       <section>
-        <WordCloud onTagsChange={setSelectedTags} />
+        <InterestList onTagsChange={setSelectedTags} />
       </section>
 
       <section className="mt-12">
