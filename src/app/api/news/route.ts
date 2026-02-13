@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     try {
         // 2. Fetch News from GNews
         // GNews format: https://gnews.io/api/v4/search?q=example&apikey=KEY
-        const gnewsUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=9&apikey=${GNEWS_API_KEY}`;
+        const gnewsUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=3&apikey=${GNEWS_API_KEY}`;
 
         console.log(`Fetching from GNews...`);
 
