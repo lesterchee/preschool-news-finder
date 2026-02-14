@@ -15,67 +15,19 @@ export default function Home() {
       if (selectedTags.length > 0) {
         setIsLoading(true);
         try {
-          // 1. Fetch Basic News
-          const query = selectedTags.join(' OR ');
-          const res = await fetch(`/api/news?q=${encodeURIComponent(query)}`);
+          // 1. Fetch News (Weighted by Interests)
+          // The API now accepts 'interests' as a comma-separated list
+          const interestsParam = selectedTags.join(',');
+          const res = await fetch(`/api/news?interests=${encodeURIComponent(interestsParam)}`);
+
           if (!res.ok) throw new Error('Failed to fetch');
           const data = await res.json();
 
-          let fetchedArticles: Article[] = data.articles || [];
-
-          // Initialize with "Summarizing" state
-          fetchedArticles = fetchedArticles.map(art => ({
-            ...art,
-            isSummarizing: true
-          }));
-
+          const fetchedArticles: Article[] = data.articles || [];
           setArticles(fetchedArticles);
-          setIsLoading(false); // Stop main loading, start AI loading in cards
+          setIsLoading(false);
 
-          // 2. Stream AI Summaries individually
-          fetchedArticles.forEach(async (article, index) => {
-            try {
-              const summaryRes = await fetch('/api/summarize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title: article.title,
-                  description: article.summaryParents, // sending parent summary (original desc) as context
-                  content: "" // We don't have full content, but title+desc is usually enough for this
-                })
-              });
-
-              if (summaryRes.ok) {
-                const summaryData = await summaryRes.json();
-                setArticles(prev => {
-                  const newArticles = [...prev];
-                  if (newArticles[index]) {
-                    newArticles[index] = {
-                      ...newArticles[index],
-                      summaryParents: summaryData.adult_summary || article.summaryParents,
-                      summaryKidsEn: summaryData.kids_en,
-                      isSummarizing: false
-                    };
-                  }
-                  return newArticles;
-                });
-              } else {
-                // If fail, just remove loading state
-                setArticles(prev => {
-                  const newArticles = [...prev];
-                  if (newArticles[index]) newArticles[index].isSummarizing = false;
-                  return newArticles;
-                });
-              }
-            } catch (err) {
-              console.error("Failed to summarize", err);
-              setArticles(prev => {
-                const newArticles = [...prev];
-                if (newArticles[index]) newArticles[index].isSummarizing = false;
-                return newArticles;
-              });
-            }
-          });
+          // Automatic AI summarization is removed in favor of manual "Copy Prompt" button
 
         } catch (error) {
           console.error("Error fetching news:", error);

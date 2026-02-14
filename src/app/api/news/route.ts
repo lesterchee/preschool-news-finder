@@ -2,100 +2,70 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
+    const interestsParam = searchParams.get('interests') || searchParams.get('q');
+    const interests = interestsParam ? interestsParam.split(',').map(s => s.trim()).filter(Boolean) : [];
 
     const GNEWS_API_KEY = process.env.NEXT_PUBLIC_GNEWS_API_KEY;
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-    if (!query) {
-        return NextResponse.json({ error: 'Query parameter "q" is required' }, { status: 400 });
+    if (interests.length === 0) {
+        return NextResponse.json({ articles: [] }); // No interests, no news
     }
 
-    // --- MANUAL OVERRIDES (Simulated AI Agent) ---
-    const MANUAL_SUMMARIES: Record<string, any> = {
-        "Microsoft wants to rewire data centers to save space": {
-            adult_summary: "Microsoft is exploring high-temperature superconductors to make data centers more efficient and compact. This technology could eliminate electrical resistance, saving significant energy and space.",
-            kids_en: "Microsoft wants to build super special computer houses! They are using magic wires that don't get hot, so the computers can sit closer together. This saves space and helps the planet!",
-            kids_zh: "微软想建超级电脑屋！他们用不发热的神奇电线，让电脑住得更近。这能省空间，还能保护地球！"
-        },
-        "An AI Toy Exposed 50,000 Logs of Its Chats With Kids to Anyone With a Gmail Account": {
-            adult_summary: "A security lapse at AI toy company Bondu exposed 50,000 chat logs between children and their smart toys. Researchers found the web console was unprotected, allowing unauthorized access.",
-            kids_en: "Always be careful with secrets! A toy that talks to kids accidentally showed its messages to strangers. It's important to keep our private words safe and locked up tight!",
-            kids_zh: "秘密要小心！一个会说话的玩具不小心把聊天给陌生人看了。我们要把秘密锁好，不让别人随便看！"
-        },
-        "T. Rex Took Its Sweet Time Getting Huge": {
-            adult_summary: "New fossil analysis reveals that Tyrannosaurus rex grew slowly for a long time before having a massive growth spurt. This challenges previous assumptions about their growth rates.",
-            kids_en: "The T-Rex wasn't always a giant! Scientists found out that T-Rex babies stayed small for a long time before SHOOTING up to be huge. Just like you, they need time to grow big and strong!",
-            kids_zh: "霸王龙不是生来就巨大的！科学家发现它们小时候很小，过了很久才突然长得超级大。像你一样，长大需要时间！"
-        }
-    };
-    // ---------------------------------------------
+    // Determine fetch configuration based on number of interests
+    let fetchConfigs: { q: string, max: number }[] = [];
 
-    // 1. Mock Data (Fallback if no GNews API Key)
+    if (interests.length === 1) {
+        // Rule 1: 1 Interest -> 9 articles
+        fetchConfigs.push({ q: interests[0], max: 9 });
+    } else if (interests.length === 2) {
+        // Rule 2: 2 Interests -> 5 for first, 4 for second
+        fetchConfigs.push({ q: interests[0], max: 5 });
+        fetchConfigs.push({ q: interests[1], max: 4 });
+    } else {
+        // Rule 3: 3 or more Interests -> 3 for each of the top 3
+        const top3 = interests.slice(0, 3);
+        top3.forEach(interest => {
+            fetchConfigs.push({ q: interest, max: 3 });
+        });
+    }
+
     if (!GNEWS_API_KEY || GNEWS_API_KEY === 'REPLACE_WITH_YOUR_GNEWS_KEY') {
-        // Return mock data for demo purposes
+        // Mock data logic could go here, but for now return empty or simple mock
         return NextResponse.json({ articles: [] });
     }
 
     try {
-        // 2. Fetch News from GNews
-        // GNews format: https://gnews.io/api/v4/search?q=example&apikey=KEY
-        const gnewsUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=3&apikey=${GNEWS_API_KEY}`;
+        console.log(`Fetching news for configs:`, fetchConfigs);
 
-        console.log(`Fetching from GNews...`);
-
-        const newsRes = await fetch(gnewsUrl);
-
-        if (!newsRes.ok) {
-            const err = await newsRes.text();
-            console.error("GNews Error:", err);
-            throw new Error(`GNews error: ${newsRes.status}`);
-        }
-
-        const newsData = await newsRes.json();
-
-        if (!newsData.articles || newsData.articles.length === 0) {
-            return NextResponse.json({ articles: [] });
-        }
-
-        // 3. Process & Summarize Articles
-        const processedArticles = await Promise.all(newsData.articles.map(async (article: any) => {
-            let summaries = {
-                adult_summary: article.description || "No summary available.",
-                kids_en: "Summary coming soon!",
-                kids_zh: "故事即将到来!"
-            };
-
-            const title = article.title;
-
-            // CHECK MANUAL OVERRIDE FIRST
-            if (MANUAL_SUMMARIES[title]) {
-                summaries = MANUAL_SUMMARIES[title];
-            }
-            // Only run LLM if key is present AND no manual override
-            else if (OPENAI_API_KEY) {
-                try {
-                    // ... (Existing OpenAI Logic placeholder) ...
-                } catch (e) {
-                    console.error("LLM Exception:", e);
+        // Fetch all in parallel
+        const results = await Promise.all(fetchConfigs.map(async (config) => {
+            const gnewsUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(config.q)}&lang=en&max=${config.max}&apikey=${GNEWS_API_KEY}`;
+            try {
+                const res = await fetch(gnewsUrl);
+                if (!res.ok) {
+                    console.error(`GNews error for ${config.q}: ${res.status}`);
+                    return [];
                 }
-            } else {
-                // Fallback Mock Summaries
-                summaries.kids_en = `(AI Quota exceeded) Wow! ${title} is so cool! It's like magic because... [Need API Key with billing for real summary]`;
-                summaries.kids_zh = `(AI Quota exceeded) 哇！这个新闻真棒！[需要 API Key]`;
+                const data = await res.json();
+                return data.articles || [];
+            } catch (err) {
+                console.error(`Fetch failed for ${config.q}:`, err);
+                return [];
             }
+        }));
 
-            return {
-                title: article.title,
-                url: article.url,
-                // GNews uses 'image' instead of 'urlToImage'
-                image: article.image,
-                source: article.source.name,
-                date: article.publishedAt,
-                summaryParents: summaries.adult_summary,
-                summaryKidsEn: summaries.kids_en,
-                summaryKidsZh: summaries.kids_zh
-            };
+        // Flatten results
+        const allArticles = results.flat();
+
+        // deduplicate by title just in case
+        const uniqueArticles = Array.from(new Map(allArticles.map(item => [item.title, item])).values());
+
+        const processedArticles = uniqueArticles.map((article: any) => ({
+            title: article.title,
+            url: article.url,
+            image: article.image,
+            source: article.source.name,
+            date: article.publishedAt
         }));
 
         return NextResponse.json({ articles: processedArticles });
